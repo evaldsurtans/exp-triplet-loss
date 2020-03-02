@@ -616,7 +616,7 @@ if __name__ == '__main__':
                 if args.is_center_loss:
                     if args.triplet_loss == 'exp13':
                         eps = 1e-20
-                        loss_center_inner = torch.mean(torch.clamp(pos_norm - C_norm_center, 0.0))
+                        loss_center_inner = torch.mean(torch.clamp(centers_dist - C_norm_center, 0.0))
                         loss_center = -torch.log(1.0 - (loss_center_inner/(1.-C_norm_center)) + eps)
                     else:
                         loss_center = torch.mean(torch.clamp(centers_dist - C_norm_center, 0.0))
