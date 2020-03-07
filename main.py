@@ -598,8 +598,9 @@ if __name__ == '__main__':
                 center = centers_of_classes_by_y[each_y]['sum'] / centers_of_classes_by_y[each_y]['count']
                 centers_of_classes_by_y[each_y]['center'] = center
                 if args.is_center_loss and args.center_loss_coef > 0:
-                    centers.append(torch.FloatTensor(center))
-                    outputs_by_centers.append(output[idx])
+                    if centers_of_classes_by_y[each_y]['count'] > args.center_loss_min_count:
+                        centers.append(torch.FloatTensor(center))
+                        outputs_by_centers.append(output[idx])
 
             if len(centers) > 0:
                 centers = torch.stack(centers).to(args.device)
