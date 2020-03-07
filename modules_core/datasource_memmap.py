@@ -45,13 +45,6 @@ class Dataset(torch.utils.data.dataset.Dataset):
         if self.is_test_data:
             base_name = 'test'
 
-        # debug
-        base_name = 'test'
-        # json.dump({
-        #         'class_names': class_names,
-        #         'mmap_shape': mmap_shape,
-        #         'samples_by_class_idxes': samples_by_class_idxes
-        #     }, fp, indent=4)
         with open(f'{args.datasource_path_memmaps}/{base_name}.json', 'r') as fp:
             self.data_desc = json.load(fp)
 

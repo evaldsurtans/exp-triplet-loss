@@ -11,6 +11,7 @@ from PIL import Image
 # pip install resize-and-crop
 from resize_and_crop import resize_and_crop
 
+from modules.file_utils import FileUtils
 from modules.logging_utils import LoggingUtils
 
 parser = argparse.ArgumentParser(description='Process VGG to memmap for dataset')
@@ -24,11 +25,11 @@ parser.add_argument('-path_output', default='/Users/evalds/Downloads/vggface2/',
 
 parser.add_argument('-size_img', default=128, type=int)
 parser.add_argument('-thread_max', default=200, type=int)
-parser.add_argument('-is_only_json', default=False, type=lambda x: (str(x).lower() == 'true'))
 
 args, args_other = parser.parse_known_args()
 
 base_name = os.path.basename(args.path_input)
+FileUtils.createDir(args.path_output)
 logging_utils = LoggingUtils(f"{args.path_output}/{base_name}-{datetime.now().strftime('%y-%m-%d_%H-%M-%S')}.log")
 
 class_names = []
