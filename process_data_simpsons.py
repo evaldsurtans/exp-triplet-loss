@@ -105,6 +105,15 @@ for base_name, samples_by_class_idxes, samples_by_paths in [
         dtype=np.float16,
         shape=tuple(mmap_shape))
 
+    with open(f'{args.path_output}/{base_name}.json', 'w') as fp:
+        json.dump({
+            'class_names': class_names,
+            'mmap_shape': mmap_shape,
+            'samples_by_class_idxes': samples_by_class_idxes.tolist()
+        }, fp, indent=4)
+
+    logging_utils.info('finished json')
+
 
     def thread_processing(sample):
         idx_sample, path_image = sample
@@ -143,9 +152,9 @@ for base_name, samples_by_class_idxes, samples_by_paths in [
         np_image *= 2
 
         # for debug
-        np_image = 0.2989 * np_image[0, :] + 0.5870 * np_image[1, :] + 0.1140 * np_image[2, :]
-        plt.imshow(np_image)
-        plt.show()
+        # np_image = 0.2989 * np_image[0, :] + 0.5870 * np_image[1, :] + 0.1140 * np_image[2, :]
+        # plt.imshow(np_image)
+        # plt.show()
 
         mem[idx_sample] = np_image
 
@@ -159,12 +168,5 @@ for base_name, samples_by_class_idxes, samples_by_paths in [
 
     logging_utils.info('finished processing')
 
-    with open(f'{args.path_output}/{base_name}.json', 'w') as fp:
-        json.dump({
-            'class_names': class_names,
-            'mmap_shape': mmap_shape,
-            'samples_by_class_idxes': samples_by_class_idxes
-        }, fp, indent=4)
 
-    logging_utils.info('finished json')
 

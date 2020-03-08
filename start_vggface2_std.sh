@@ -9,7 +9,7 @@ cd ~/Documents/fassion_minst/
 
 python taskgen.py -repeat 1 -hpc_feautre_gpu v100 -hpc_queue batch -hpc_gpu_process_count 1 \
 -hpc_gpu_count 1 -hpc_cpu_count_for_gpu 8 -hpc_cpu_count 12 -hpc_gpu_max_queue 9999 -device cuda \
--report dec_5_model_13_hospital_exp13_vggface_full_rep_radam_fixed_colored_std \
+-report mar_8_model_13_hospital_exp13_vggface_full_rep_radam_fixed_colored_std \
 -batch_size 90 \
 -triplet_positives 3 \
 -epochs_count 100 \
