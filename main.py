@@ -931,19 +931,24 @@ if __name__ == '__main__':
                         if each_y in list_projector_classes_counts:
                             # max 100 per class
                             if list_projector_classes_counts[each_y] < args.max_embeddings_projector_samples:
+
+                                if x.min() < 0:
+                                    x += 1.0
+                                    x = (x / (x.max() - x.min()))
+
                                 if x.size(1) >= 3:
                                     x_each = to_numpy(0.299 * x[idx_y][0] + 0.587 * x[idx_y][1] + 0.114 * x[idx_y][2])
                                 else:
                                     # convert to grayscale
                                     x_each = to_numpy(x[idx_y][0])
 
-                                x_each = (2*x_each / (x_each.max() - x_each.min()))-1.0 # scale -1..1
+                                #x_each = (2*x_each / (x_each.max() - x_each.min()))-1.0 # scale -1..1
                                 x_each = np.array(x_each, dtype=np.float)
                                 x_each = resize(x_each, (args.img_size_embeddings_class_for_projector, args.img_size_embeddings_class_for_projector)) # resize for smaller resolution
 
                                 list_projector_imgs.append(x_each)
                                 list_projector_embs.append(to_numpy(output[idx_y]))
-                                list_projector_labels.append(str(each_y)) 
+                                list_projector_labels.append(str(each_y))
 
                     np_dists = np.zeros( (y.shape[0], classes_size), dtype=np.float)
                     t_centers = torch.FloatTensor(np.array(list(class_centroids.values()))).to(args.device)

@@ -19,10 +19,10 @@ from modules.logging_utils import LoggingUtils
 parser = argparse.ArgumentParser(description='Process Kaggle The Simpsons to memmap for dataset')
 
 # /the-simpsons-characters-dataset/kaggle_simpson_testset/kaggle_simpson_testset/abraham_grampa_simpson_1.jpg
-parser.add_argument('-path_input_test', default='/Users/evalds/Desktop/the-simpsons-characters-dataset/kaggle_simpson_testset/kaggle_simpson_testset', type=str)
+parser.add_argument('-path_input_test', default='./the-simpsons-characters-dataset/kaggle_simpson_testset/kaggle_simpson_testset', type=str)
 
 # /the-simpsons-characters-dataset/simpsons_dataset/abraham_grampa_simpson/pic_0001.jpg
-parser.add_argument('-path_input_train', default='/Users/evalds/Desktop/the-simpsons-characters-dataset/simpsons_dataset', type=str)
+parser.add_argument('-path_input_train', default='./the-simpsons-characters-dataset/simpsons_dataset', type=str)
 
 # /simpsons/test.mmap
 # /simpsons/test.json
