@@ -579,6 +579,7 @@ if __name__ == '__main__':
 
         centers = []
         outputs_by_centers = []
+        y_by_centers = []
         list_y = to_numpy(y).tolist()
 
         loss_emb = loss.detach().clone()
@@ -601,6 +602,7 @@ if __name__ == '__main__':
                     if centers_of_classes_by_y[each_y]['count'] > args.center_loss_min_count:
                         centers.append(torch.FloatTensor(center))
                         outputs_by_centers.append(output[idx])
+                        y_by_centers.append(each_y)
 
             if len(centers) > 0:
                 centers = torch.stack(centers).to(args.device)
@@ -608,7 +610,7 @@ if __name__ == '__main__':
 
                 centers_dist = get_distance(centers, outputs_by_centers, args.triplet_similarity, mode=args.device)
                 np_centers_dist = to_numpy(centers_dist)
-                for idx, each_y in enumerate(list_y):
+                for idx, each_y in enumerate(y_by_centers):
                     centers_of_classes_by_y[each_y]['max_dist'] = max(
                         centers_of_classes_by_y[each_y]['max_dist'],
                         np_centers_dist[idx]
