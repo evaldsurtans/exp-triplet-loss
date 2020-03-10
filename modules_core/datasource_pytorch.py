@@ -163,10 +163,10 @@ class Dataset(torch.utils.data.dataset.Dataset):
         count_sample_batches = int(self.size_samples / self.args.batch_size)
         self.size_samples = int(self.args.batch_size * count_sample_batches)
         self.samples = []
-        for _ in range(self.size_samples):
+        for idx_sample in range(self.size_samples):
             group = self.groups[idx_group]
 
-            for _ in range(self.args.triplet_positives):
+            for idx_positive in range(self.args.triplet_positives):
                 img = group['samples'][group['counter']]
                 self.samples.append((idx_group, img))
 

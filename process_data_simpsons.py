@@ -19,18 +19,18 @@ from modules.logging_utils import LoggingUtils
 parser = argparse.ArgumentParser(description='Process Kaggle The Simpsons to memmap for dataset')
 
 # /the-simpsons-characters-dataset/kaggle_simpson_testset/kaggle_simpson_testset/abraham_grampa_simpson_1.jpg
-parser.add_argument('-path_input_test', default='./the-simpsons-characters-dataset/kaggle_simpson_testset/kaggle_simpson_testset', type=str)
+parser.add_argument('-path_input_test', default='/Users/evalds/Desktop/the-simpsons-characters-dataset/kaggle_simpson_testset/kaggle_simpson_testset', type=str)
 
 # /the-simpsons-characters-dataset/simpsons_dataset/abraham_grampa_simpson/pic_0001.jpg
-parser.add_argument('-path_input_train', default='./the-simpsons-characters-dataset/simpsons_dataset', type=str)
+parser.add_argument('-path_input_train', default='/Users/evalds/Desktop/the-simpsons-characters-dataset/simpsons_dataset', type=str)
 
 # /simpsons/test.mmap
 # /simpsons/test.json
-parser.add_argument('-path_output', default='/Users/evalds/Downloads/simpsons/', type=str)
+parser.add_argument('-path_output', default='/Users/evalds/Downloads/simpsons_x/', type=str)
 
 # scale and squeeze images to this size
 parser.add_argument('-size_img', default=128, type=int)
-parser.add_argument('-thread_max', default=1, type=int)
+parser.add_argument('-thread_max', default=10, type=int)
 
 parser.add_argument('-test_split', default=0.2, type=float)
 
@@ -40,8 +40,6 @@ FileUtils.createDir(args.path_output)
 logging_utils = LoggingUtils(f"{args.path_output}/simpsons-{datetime.now().strftime('%y-%m-%d_%H-%M-%S')}.log")
 
 class_names = []
-samples_by_class_idxes = []
-samples_by_paths = []
 last_class_name = None
 
 mmap_shape = [0, 3, args.size_img, args.size_img]
@@ -62,6 +60,9 @@ for path_file in paths_files:
 
 logging_utils.info(f'samples started to gather')
 
+samples_groups_by_class = {}
+samples_count = 0
+
 dir_person_ids = os.listdir(args.path_input_train)
 for person_id in dir_person_ids:
     path_person_id = f'{args.path_input_train}/{person_id}'
@@ -77,39 +78,53 @@ for person_id in dir_person_ids:
                     class_names.append(person_id)
 
                 class_idx = len(class_names) - 1
-                samples_by_class_idxes.append(class_idx)
-                samples_by_paths.append((len(samples_by_paths), path_image))
+                if class_idx not in samples_groups_by_class:
+                    samples_groups_by_class[class_idx] = []
 
-logging_utils.info(f'samples gathered: {len(samples_by_class_idxes)}')
+                samples_groups_by_class[class_idx].append(path_image)
+                samples_count += 1
 
-idxes_shuffled = np.arange(len(samples_by_class_idxes), dtype=np.int).tolist()
+
+logging_utils.info(f'samples gathered: {samples_count}')
+
+
+idxes_shuffled = np.arange(len(class_names), dtype=np.int).tolist()
 random.shuffle(idxes_shuffled)
+class_names_all = np.array(class_names)[idxes_shuffled]
 
-samples_by_class_idxes_all = np.array(samples_by_class_idxes)[idxes_shuffled]
-samples_by_paths_all = np.array(samples_by_paths)[idxes_shuffled]
+class_names_test = class_names_all[:int(len(class_names_all) * args.test_split)]
+class_names_train = class_names_all[len(class_names_test):]
 
-samples_by_class_idxes_test = samples_by_class_idxes_all[:int(len(samples_by_class_idxes_all) * args.test_split)]
-samples_by_paths_test = samples_by_paths_all[:len(samples_by_class_idxes_test)]
 
-samples_by_class_idxes_train = samples_by_class_idxes_all[len(samples_by_class_idxes_test):]
-samples_by_paths_train = samples_by_paths_all[len(samples_by_class_idxes_test):]
-
-for base_name, samples_by_class_idxes, samples_by_paths in [
-    ('train', samples_by_class_idxes_train, samples_by_paths_train),
-    ('test', samples_by_class_idxes_test, samples_by_paths_test)
+for base_name, class_names_include in [
+    ('train', class_names_train),
+    ('test', class_names_test)
 ]:
+    class_names_include = class_names_include.tolist()
+    samples_by_class_idxes = []
+    samples_by_paths = []
+
+    for class_name in class_names_include:
+        class_idx_local = class_names_include.index(class_name)
+        class_idx_global = class_names.index(class_name)
+        samples = samples_groups_by_class[class_idx_global]
+        for sample_path in samples:
+            samples_by_paths.append((len(samples_by_paths), sample_path))
+            samples_by_class_idxes.append(class_idx_local)
+
     mmap_shape[0] = len(samples_by_paths)
     mem = np.memmap(
         f'{args.path_output}/{base_name}.mmap',
         mode='w+',
         dtype=np.float16,
         shape=tuple(mmap_shape))
+    print(f'mmap_shape: {mmap_shape}')
 
     with open(f'{args.path_output}/{base_name}.json', 'w') as fp:
         json.dump({
-            'class_names': class_names,
+            'class_names': class_names_include,
             'mmap_shape': mmap_shape,
-            'samples_by_class_idxes': samples_by_class_idxes.tolist()
+            'samples_by_class_idxes': samples_by_class_idxes
         }, fp, indent=4)
 
     logging_utils.info('finished json')
@@ -148,8 +163,8 @@ for base_name, samples_by_class_idxes, samples_by_paths in [
         np_image = np.swapaxes(np_image, 1, 2)
         np_image = np.swapaxes(np_image, 0, 1)
         np_image /= 255
-        np_image -= 0.5
-        np_image *= 2
+        #np_image -= 0.5
+        #np_image *= 2
 
         # for debug
         # np_image = 0.2989 * np_image[0, :] + 0.5870 * np_image[1, :] + 0.1140 * np_image[2, :]
@@ -159,7 +174,6 @@ for base_name, samples_by_class_idxes, samples_by_paths in [
         mem[idx_sample] = np_image
 
     time_start = time.time()
-    #thread_processing(samples_by_paths[0])
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.thread_max) as executor:
         executor.map(thread_processing, samples_by_paths)
     logging_utils.info(f'done in: {(time.time() - time_start)/60} min')

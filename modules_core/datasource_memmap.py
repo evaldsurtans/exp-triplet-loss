@@ -55,9 +55,9 @@ class Dataset(torch.utils.data.dataset.Dataset):
             shape=tuple(self.data_desc['mmap_shape']))
 
         if self.args.datasource_max_class_count == 0:
-            self.classes = np.arange(len(self.data_desc['class_names'])).tolist()
+            self.classes = self.data_desc['class_names']
         else:
-            self.classes = np.arange(min(self.args.datasource_max_class_count, len(self.data_desc['class_names']))).tolist()
+            self.classes = self.data_desc['class_names'][:min(self.args.datasource_max_class_count, len(self.data_desc['class_names']))]
         groups = [{ 'samples': [], 'counter': 0 } for _ in self.classes]
 
         for sample_idx, label_idx in enumerate(self.data_desc['samples_by_class_idxes']):
@@ -70,22 +70,6 @@ class Dataset(torch.utils.data.dataset.Dataset):
         if self.args.datasource_is_grayscale:
             args.input_features = 1
 
-        if not is_test_data:
-            ids = [int(it) for it in self.args.datasource_exclude_train_class_ids]
-            ids = sorted(ids, reverse=True)
-            for remove_id in ids:
-                del self.classes[remove_id]
-                del groups[remove_id]
-        else:
-            if len(self.args.datasource_include_test_class_ids):
-                ids = set(self.classes) - set([int(it) for it in self.args.datasource_include_test_class_ids])
-                ids = list(ids)
-                ids = sorted(ids, reverse=True)
-                for remove_id in ids:
-                    del self.classes[remove_id]
-                    del groups[remove_id]
-
-        self.classes = np.array(self.classes, dtype=np.int)
         self.size_samples = 0
         for idx, group in enumerate(groups):
             samples = group['samples']
@@ -121,12 +105,14 @@ class Dataset(torch.utils.data.dataset.Dataset):
         count_sample_batches = int(self.size_samples / self.args.batch_size)
         self.size_samples = int(self.args.batch_size * count_sample_batches)
         self.samples = []
-        for _ in range(self.size_samples):
+        for idx_sample in range(self.size_samples):
             group = self.groups[idx_group]
 
-            for _ in range(self.args.triplet_positives):
-                img = group['samples'][group['counter']]
-                self.samples.append((idx_group, img))
+            for idx_positives in range(self.args.triplet_positives):
+                img_idx = group['samples'][group['counter']]
+                self.samples.append((idx_group, img_idx))
+
+                #print(f'img_idx: {img_idx} min: {self.mem[img_idx].min()} max: {self.mem[img_idx].max()}')
 
                 group['counter'] += 1
                 if group['counter'] >= len(group['samples']):
