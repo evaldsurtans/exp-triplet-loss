@@ -2,7 +2,9 @@ import multiprocessing
 import threading
 from itertools import chain
 
+import cv2
 import matplotlib
+from PIL import Image
 from torch.autograd import Variable
 
 from modules.file_utils import FileUtils
@@ -560,7 +562,7 @@ if __name__ == '__main__':
 
             loss_pos = -torch.log(1.0 - (loss_pos_inner/(1.-C_norm)) + eps) * args.pos_loss_coef
             loss_neg = -torch.log(1.0 - (loss_neg_inner/0.5) + eps) * args.neg_loss_coef
-            loss = loss_pos + loss_neg        
+            loss = loss_pos + loss_neg
         elif args.triplet_loss == 'standard':
             delta = sampled['positives_dist'] - sampled['negatives_dist'] + margin_distance
             if delta.size(0) == 0: # no valid triplets mined
@@ -934,23 +936,29 @@ if __name__ == '__main__':
                             # max 100 per class
                             if list_projector_classes_counts[each_y] < args.max_embeddings_projector_samples:
 
-                                if x.min() < 0:
-                                    x += 1.0
-                                    x = (x / (x.max() - x.min()))
+                                x_np = x[idx_y].to('cpu').data.numpy()
+                                if x_np.min() < 0:
+                                    x_np += 1.0
+                                    x_np = (x_np / (x_np.max() - x_np.min()))
 
-                                if x.size(1) >= 3:
-                                    x_each = to_numpy(0.299 * x[idx_y][0] + 0.587 * x[idx_y][1] + 0.114 * x[idx_y][2])
-                                else:
-                                    # convert to grayscale
-                                    x_each = to_numpy(x[idx_y][0])
+                                x_np *= 255
+                                # C, H, W
+                                x_np = x_np.swapaxes(0, 1)
+                                x_np = x_np.swapaxes(1, 2)
+                                # H, W, C
+                                img = Image.fromarray(x_np.astype(np.uint8), mode='RGB')
 
-                                #x_each = (2*x_each / (x_each.max() - x_each.min()))-1.0 # scale -1..1
-                                x_each = np.array(x_each, dtype=np.float)
-                                x_each = resize(x_each, (args.img_size_embeddings_class_for_projector, args.img_size_embeddings_class_for_projector)) # resize for smaller resolution
+                                img = img.resize((args.img_size_embeddings_class_for_projector, args.img_size_embeddings_class_for_projector), Image.ANTIALIAS)
+                                img = np.array(img).astype(np.float)
 
-                                list_projector_imgs.append(x_each)
+                                img = img.swapaxes(2, 1)
+                                img = img.swapaxes(1, 0)
+                                img /= 255
+                                # C, H, W
+
+                                list_projector_imgs.append(img)
                                 list_projector_embs.append(to_numpy(output[idx_y]))
-                                list_projector_labels.append(str(each_y))
+                                list_projector_labels.append(data_loader.dataset.classes[each_y])
 
                     np_dists = np.zeros( (y.shape[0], classes_size), dtype=np.float)
                     t_centers = torch.FloatTensor(np.array(list(class_centroids.values()))).to(args.device)
@@ -992,16 +1000,12 @@ if __name__ == '__main__':
                         meters[f'{meter_prefix}_auc_{type}'].add(np.max(predicted, axis=1), target_tp)
                 process_batches(data_loader, callback)
 
-                try:
-                    # label_img: :math:`(N, C, H, W)
-                    tensorboard_writer.add_embedding(
-                        mat=torch.FloatTensor(np.stack(list_projector_embs)),
-                        label_img=torch.FloatTensor(np.stack(list_projector_imgs)).unsqueeze(dim=1), # unsqueeze grayscale dim
-                        metadata=list_projector_labels,
-                        global_step=epoch, tag=f'{meter_prefix}_emb')
-                except Exception as e:
-                    LoggingUtils.exception(e)
-
+                # label_img: :math:`(N, C, H, W)
+                tensorboard_writer.add_embedding(
+                    mat=torch.FloatTensor(np.stack(list_projector_embs)),
+                    label_img=torch.FloatTensor(np.stack(list_projector_imgs)),
+                    metadata=list_projector_labels,
+                    global_step=epoch, tag=f'{meter_prefix}_emb')
 
                 state[f'{meter_prefix}_negative_max'] = negative_max
                 state[f'{meter_prefix}_acc_range'] = meters[f'{meter_prefix}_acc_range'].value()[0]
