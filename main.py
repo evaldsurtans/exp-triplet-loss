@@ -961,7 +961,12 @@ if __name__ == '__main__':
                                 list_projector_labels.append(data_loader.dataset.classes[each_y])
 
                     np_dists = np.zeros( (y.shape[0], classes_size), dtype=np.float)
-                    t_centers = torch.FloatTensor(np.array(list(class_centroids.values()))).to(args.device)
+
+                    np_centers = np.zeros((classes_size, output.size(1)), dtype=np.float)
+                    for each_y, centroid in class_centroids.items():
+                        np_centers[each_y] = centroid
+                    t_centers = torch.FloatTensor(np_centers).to(args.device)
+
                     for idx_y, each_output in enumerate(output):
                         t_each_output = each_output.repeat(t_centers.size(0), 1)
                         np_dists[idx_y] = get_distance(t_each_output, t_centers, args.triplet_similarity, mode=args.device).to('cpu').data.numpy()
@@ -980,7 +985,7 @@ if __name__ == '__main__':
                             max_dist = class_max_dist[each_y]
                             if type == 'range':
                                 for idx_emb, dist in enumerate(np_dists):
-                                    if max_dist > dist[each_y]:
+                                    if max_dist >= dist[each_y]:
                                         predicted[idx_emb, each_y] += 1.0
                             else:
                                 predicted[:,each_y] = np.minimum(predicted[:,each_y], np_dists[:, each_y]) # store for each class closest embedding with distance value
