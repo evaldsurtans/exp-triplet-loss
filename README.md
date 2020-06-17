@@ -10,6 +10,7 @@ Data-sets used:
 * VGGFace-2
 * CIFAR-10
 * Fassion-MNIST
+* Simpsons Dataset
 
 ![VGGFace2](vggface_demo.gif)
 
